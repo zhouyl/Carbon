@@ -1,7 +1,7 @@
 {
     "name": "zhouyl/carbon",
     "type": "library",
-    "description": "A simple API extension for DateTime.",
+    "description": "A simple API extension for DateTime. [remove the symfony/translation]",
     "keywords": [
         "date",
         "time",
