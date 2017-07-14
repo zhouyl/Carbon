@@ -17,9 +17,6 @@ use DatePeriod;
 use DateTime;
 use DateTimeZone;
 use InvalidArgumentException;
-use Symfony\Component\Translation\Loader\ArrayLoader;
-use Symfony\Component\Translation\Translator;
-use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * A simple API extension for DateTime
@@ -155,13 +152,6 @@ class Carbon extends DateTime
      * @var \Carbon\Carbon
      */
     protected static $testNow;
-
-    /**
-     * A translator to ... er ... translate stuff.
-     *
-     * @var \Symfony\Component\Translation\TranslatorInterface
-     */
-    protected static $translator;
 
     /**
      * The errors that can occur.
@@ -1085,85 +1075,6 @@ class Carbon extends DateTime
                     return true;
                 }
             }
-        }
-
-        return false;
-    }
-
-    ///////////////////////////////////////////////////////////////////
-    /////////////////////// LOCALIZATION //////////////////////////////
-    ///////////////////////////////////////////////////////////////////
-
-    /**
-     * Initialize the translator instance if necessary.
-     *
-     * @return \Symfony\Component\Translation\TranslatorInterface
-     */
-    protected static function translator()
-    {
-        if (static::$translator === null) {
-            $translator = new Translator('en');
-            $translator->addLoader('array', new ArrayLoader());
-            static::$translator = $translator;
-            static::setLocale('en');
-        }
-
-        return static::$translator;
-    }
-
-    /**
-     * Get the translator instance in use
-     *
-     * @return \Symfony\Component\Translation\TranslatorInterface
-     */
-    public static function getTranslator()
-    {
-        return static::translator();
-    }
-
-    /**
-     * Set the translator instance to use
-     *
-     * @param \Symfony\Component\Translation\TranslatorInterface $translator
-     */
-    public static function setTranslator(TranslatorInterface $translator)
-    {
-        static::$translator = $translator;
-    }
-
-    /**
-     * Get the current translator locale
-     *
-     * @return string
-     */
-    public static function getLocale()
-    {
-        return static::translator()->getLocale();
-    }
-
-    /**
-     * Set the current translator locale and indicate if the source locale file exists
-     *
-     * @param string $locale
-     *
-     * @return bool
-     */
-    public static function setLocale($locale)
-    {
-        $locale = preg_replace_callback('/\b([a-z]{2})[-_](?:([a-z]{4})[-_])?([a-z]{2})\b/', function ($matches) {
-            return $matches[1].'_'.(!empty($matches[2]) ? ucfirst($matches[2]).'_' : '').strtoupper($matches[3]);
-        }, strtolower($locale));
-
-        if (file_exists($filename = __DIR__.'/Lang/'.$locale.'.php')) {
-            $translator = static::translator();
-            $translator->setLocale($locale);
-
-            if ($translator instanceof Translator) {
-                // Ensure the locale has been loaded.
-                $translator->addResource('array', require $filename, $locale);
-            }
-
-            return true;
         }
 
         return false;
@@ -2848,27 +2759,31 @@ class Carbon extends DateTime
                 break;
         }
 
-        if ($count === 0) {
+        if ($count == 0) {
             $count = 1;
         }
 
-        $time = static::translator()->transChoice($unit, $count, array(':count' => $count));
+        $txt = $count.' '.$unit.($count == 1 || $short ? '' : 's');
 
         if ($absolute) {
-            return $time;
+            return $txt;
         }
 
         $isFuture = $diffInterval->invert === 1;
 
-        $transId = $isNow ? ($isFuture ? 'from_now' : 'ago') : ($isFuture ? 'after' : 'before');
+        if ($isNow) {
+            if ($isFuture) {
+                return $txt.' from now';
+            }
 
-        // Some langs have special pluralization for past and future tense.
-        $tryKeyExists = $unit.'_'.$transId;
-        if ($tryKeyExists !== static::translator()->transChoice($tryKeyExists, $count)) {
-            $time = static::translator()->transChoice($tryKeyExists, $count, array(':count' => $count));
+            return $txt.' ago';
         }
 
-        return static::translator()->trans($transId, array(':time' => $time));
+        if ($isFuture) {
+            return $txt.' after';
+        }
+
+        return $txt.' before';
     }
 
     ///////////////////////////////////////////////////////////////////

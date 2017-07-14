@@ -13,9 +13,6 @@ namespace Carbon;
 
 use DateInterval;
 use InvalidArgumentException;
-use Symfony\Component\Translation\Loader\ArrayLoader;
-use Symfony\Component\Translation\Translator;
-use Symfony\Component\Translation\TranslatorInterface;
 
 /**
  * A simple API extension for DateInterval.
@@ -76,13 +73,6 @@ class CarbonInterval extends DateInterval
     const PERIOD_HOURS = 'H';
     const PERIOD_MINUTES = 'M';
     const PERIOD_SECONDS = 'S';
-
-    /**
-     * A translator to ... er ... translate stuff
-     *
-     * @var \Symfony\Component\Translation\TranslatorInterface
-     */
-    protected static $translator;
 
     /**
      * Before PHP 5.4.20/5.5.4 instead of FALSE days will be set to -99999 when the interval instance
@@ -235,73 +225,6 @@ class CarbonInterval extends DateInterval
         $instance->days = $di->days;
 
         return $instance;
-    }
-
-    ///////////////////////////////////////////////////////////////////
-    /////////////////////// LOCALIZATION //////////////////////////////
-    ///////////////////////////////////////////////////////////////////
-
-    /**
-     * Initialize the translator instance if necessary.
-     *
-     * @return \Symfony\Component\Translation\TranslatorInterface
-     */
-    protected static function translator()
-    {
-        if (static::$translator === null) {
-            $translator = new Translator('en');
-            $translator->addLoader('array', new ArrayLoader());
-            static::$translator = $translator;
-            static::setLocale('en');
-        }
-
-        return static::$translator;
-    }
-
-    /**
-     * Get the translator instance in use
-     *
-     * @return \Symfony\Component\Translation\TranslatorInterface
-     */
-    public static function getTranslator()
-    {
-        return static::translator();
-    }
-
-    /**
-     * Set the translator instance to use
-     *
-     * @param TranslatorInterface $translator
-     */
-    public static function setTranslator(TranslatorInterface $translator)
-    {
-        static::$translator = $translator;
-    }
-
-    /**
-     * Get the current translator locale
-     *
-     * @return string
-     */
-    public static function getLocale()
-    {
-        return static::translator()->getLocale();
-    }
-
-    /**
-     * Set the current translator locale
-     *
-     * @param string $locale
-     */
-    public static function setLocale($locale)
-    {
-        $translator = static::translator();
-        $translator->setLocale($locale);
-
-        if ($translator instanceof Translator) {
-            // Ensure the locale has been loaded.
-            $translator->addResource('array', require __DIR__.'/Lang/'.$locale.'.php', $locale);
-        }
     }
 
     ///////////////////////////////////////////////////////////////////
@@ -482,7 +405,7 @@ class CarbonInterval extends DateInterval
         $parts = array();
         foreach ($periods as $unit => $count) {
             if ($count > 0) {
-                array_push($parts, static::translator()->transChoice($unit, $count, array(':count' => $count)));
+                array_push($parts, "$count $unit".($count == 1 ? '' : 's'));
             }
         }
 
